@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Trash2 } from 'lucide-react';
-import { Word, Category } from '@/types';
-import { getAllWords, deleteWord, searchWords, updateWord } from '@/utils/dataAdapter';
-import { getCategories } from '@/utils/categoryStorage';
-import { ThemeWordbankManager } from '@/utils/themeWordbankManager';
-import SimpleCard from '@/components/SimpleCard';
-import EditWordModal from '@/components/EditWordModal';
-import Navigation from '@/components/Navigation';
+import { Word, Category } from '../../types';
+import { getAllWords, deleteWord, searchWords, updateWord } from '../../utils/dataAdapter';
+import { getCategories } from '../../utils/categoryStorage';
+import { ThemeWordbankManager } from '../../utils/themeWordbankManager';
+import SimpleCard from '../../components/SimpleCard';
+import EditWordModal from '../../components/EditWordModal';
+import Navigation from '../../components/Navigation';
 
 export default function ManagePage() {
   const [words, setWords] = useState<Word[]>([]);
