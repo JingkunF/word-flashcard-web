@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复单词问题</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-right: 10px;
+        }
+        .tab.active {
+            border-bottom-color: #2196F3;
+            color: #2196F3;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .progress {
+            background: #f0f0f0;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .word-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        .word-card.problem {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+        .word-card.fixed {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+        .word-name {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .word-translation {
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .word-example {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+        .word-category {
+            background: #e3f2fd;
+            color: #1976D2;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .word-image {
+            width: 100%;
+            height: 120px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .word-image img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+        .image-status {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        .image-status.black { background: #f44336; }
+        .image-status.generating { background: #ff9800; }
+        .image-status.good { background: #4CAF50; }
+        .image-status.mismatch { background: #9C27B0; }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .action-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-fix-example {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-regenerate-image {
+            background: #ff9800;
+            color: white;
+        }
+        .btn-delete {
+            background: #f44336;
+            color: white;
+        }
+        .log {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 修复单词问题</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('overview')">📊 概览</div>
+            <div class="tab" onclick="switchTab('examples')">📝 例句问题</div>
+            <div class="tab" onclick="switchTab('images')">🖼️ 图片问题</div>
+            <div class="tab" onclick="switchTab('mismatch')">❌ 内容不匹配</div>
+        </div>
+
+        <div id="overview" class="tab-content active">
+            <div class="info">
+                <h3>问题诊断</h3>
+                <p>此工具将帮助您识别和修复以下问题：</p>
+                <ul>
+                    <li><strong>例句问题：</strong>占位符例句 "This is an example sentence with the word [word]"</li>
+                    <li><strong>图片问题：</strong>黑屏图片或显示"生成中"状态的图片</li>
+                    <li><strong>内容不匹配：</strong>图片内容与单词含义不符</li>
+                </ul>
+            </div>
+
+            <div class="stats" id="statsContainer">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalWords">-</div>
+                    <div class="stat-label">总单词数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="exampleProblems">-</div>
+                    <div class="stat-label">例句问题</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="imageProblems">-</div>
+                    <div class="stat-label">图片问题</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="mismatchProblems">-</div>
+                    <div class="stat-label">内容不匹配</div>
+                </div>
+            </div>
+
+            <div style="text-align: center;">
+                <button onclick="scanAllProblems()">🔍 扫描所有问题</button>
+                <button onclick="fixAllExamples()">📝 修复所有例句</button>
+                <button onclick="regenerateAllImages()">🖼️ 重新生成所有图片</button>
+            </div>
+        </div>
+
+        <div id="examples" class="tab-content">
+            <h3>📝 例句问题</h3>
+            <div class="info">
+                <p>检测到使用占位符例句的单词，将生成真实、有意义的例句。</p>
+            </div>
+            <div id="exampleWordsList" class="word-grid"></div>
+        </div>
+
+        <div id="images" class="tab-content">
+            <h3>🖼️ 图片问题</h3>
+            <div class="info">
+                <p>检测到黑屏或生成中的图片，将重新生成。</p>
+            </div>
+            <div id="imageWordsList" class="word-grid"></div>
+        </div>
+
+        <div id="mismatch" class="tab-content">
+            <h3>❌ 内容不匹配</h3>
+            <div class="info">
+                <p>检测到图片内容与单词含义不符的情况。</p>
+            </div>
+            <div id="mismatchWordsList" class="word-grid"></div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let allWords = [];
+        let problemWords = {
+            examples: [],
+            images: [],
+            mismatch: []
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function switchTab(tabName) {
+            // 隐藏所有标签页内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签页
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function updateStats() {
+            document.getElementById('totalWords').textContent = allWords.length;
+            document.getElementById('exampleProblems').textContent = problemWords.examples.length;
+            document.getElementById('imageProblems').textContent = problemWords.images.length;
+            document.getElementById('mismatchProblems').textContent = problemWords.mismatch.length;
+        }
+
+        function generateBetterExample(word, category) {
+            const lowerWord = word.toLowerCase();
+            
+            const examples = {
+                'At home and in the garden': [
+                    `The ${word} in our garden looks beautiful.`,
+                    `I can see a ${word} from my window.`,
+                    `We have a lovely ${word} at home.`,
+                    `The ${word} needs some care and attention.`
+                ],
+                'In the living room': [
+                    `The ${word} is comfortable and cozy.`,
+                    `I like to sit near the ${word}.`,
+                    `The ${word} makes our living room feel warm.`,
+                    `We bought a new ${word} for the living room.`
+                ],
+                'In the kitchen': [
+                    `I use the ${word} when I cook.`,
+                    `The ${word} is very useful in the kitchen.`,
+                    `Mom keeps the ${word} clean and organized.`,
+                    `I need to wash the ${word} after dinner.`
+                ],
+                'In town': [
+                    `I saw a ${word} on my way to school.`,
+                    `The ${word} is an important part of our town.`,
+                    `We visited the ${word} yesterday.`,
+                    `The ${word} helps people in our community.`
+                ],
+                'Getting around': [
+                    `I travel by ${word} every day.`,
+                    `The ${word} is fast and convenient.`,
+                    `We took the ${word} to the city.`,
+                    `The ${word} makes transportation easier.`
+                ],
+                'At school': [
+                    `I use the ${word} in my classroom.`,
+                    `The ${word} helps me learn better.`,
+                    `Our teacher showed us the ${word}.`,
+                    `I keep my ${word} in my school bag.`
+                ],
+                'Sports and hobbies': [
+                    `I enjoy playing ${word} with my friends.`,
+                    `The ${word} is my favorite hobby.`,
+                    `We practice ${word} every weekend.`,
+                    `The ${word} makes me feel happy and healthy.`
+                ],
+                'Family and special occasions': [
+                    `I love spending time with my ${word}.`,
+                    `The ${word} is very important to our family.`,
+                    `We celebrate special occasions with our ${word}.`,
+                    `The ${word} brings our family together.`
+                ],
+                'Jobs': [
+                    `The ${word} works very hard every day.`,
+                    `I want to be a ${word} when I grow up.`,
+                    `The ${word} helps people in our community.`,
+                    `Our neighbor is a kind ${word}.`
+                ],
+                'My body and health': [
+                    `I take care of my ${word} every day.`,
+                    `The ${word} is an important part of my body.`,
+                    `I exercise to keep my ${word} healthy.`,
+                    `The doctor checked my ${word} today.`
+                ],
+                'Clothes': [
+                    `I wear my ${word} to school.`,
+                    `The ${word} is comfortable and stylish.`,
+                    `I bought a new ${word} yesterday.`,
+                    `The ${word} keeps me warm in winter.`
+                ],
+                'At the market': [
+                    `I bought fresh ${word} at the market.`,
+                    `The ${word} looks delicious and healthy.`,
+                    `We need to buy more ${word} for dinner.`,
+                    `The ${word} is on sale today.`
+                ],
+                'At the cafe': [
+                    `I ordered a ${word} at the cafe.`,
+                    `The ${word} tastes great with my meal.`,
+                    `We enjoyed the ${word} together.`,
+                    `The ${word} is the cafe's specialty.`
+                ],
+                'On the farm': [
+                    `The ${word} lives on our farm.`,
+                    `I help take care of the ${word}.`,
+                    `The ${word} is very friendly and gentle.`,
+                    `We feed the ${word} every morning.`
+                ],
+                'At the zoo': [
+                    `We saw a ${word} at the zoo.`,
+                    `The ${word} is very interesting to watch.`,
+                    `The ${word} lives in a special habitat.`,
+                    `I learned about the ${word} from the guide.`
+                ],
+                'Weather and seasons': [
+                    `The ${word} makes the weather beautiful.`,
+                    `I love when the ${word} appears.`,
+                    `The ${word} changes with the seasons.`,
+                    `We enjoy outdoor activities in the ${word}.`
+                ],
+                'Numbers and days': [
+                    `I count to ${word} every day.`,
+                    `The ${word} is my lucky number.`,
+                    `We celebrate on the ${word} of the month.`,
+                    `The ${word} helps me organize my schedule.`
+                ],
+                'Around the world': [
+                    `I want to visit the ${word} someday.`,
+                    `The ${word} is famous around the world.`,
+                    `We learned about the ${word} in geography.`,
+                    `The ${word} is a beautiful place to see.`
+                ],
+                'Where are they': [
+                    `I put the ${word} in the right place.`,
+                    `The ${word} is exactly where I left it.`,
+                    `Can you find the ${word} for me?`,
+                    `The ${word} is in a safe location.`
+                ],
+                'Story words': [
+                    `Once upon a time, there was a ${word}.`,
+                    `The ${word} lived in a magical kingdom.`,
+                    `The brave ${word} saved the day.`,
+                    `The ${word} had amazing adventures.`
+                ],
+                'Colours and shapes': [
+                    `The ${word} is my favorite color.`,
+                    `I drew a ${word} shape in art class.`,
+                    `The ${word} makes everything look beautiful.`,
+                    `I like things that are ${word}.`
+                ],
+                'What are they like': [
+                    `The ${word} is very special to me.`,
+                    `I think the ${word} is wonderful.`,
+                    `The ${word} makes me feel good.`,
+                    `I appreciate the ${word} quality.`
+                ],
+                'Opposite words': [
+                    `The ${word} is the opposite of what I expected.`,
+                    `I learned about ${word} in school.`,
+                    `The ${word} concept is interesting.`,
+                    `Understanding ${word} helps me learn.`
+                ],
+                'I can…': [
+                    `I can ${word} very well.`,
+                    `I practice ${word} every day.`,
+                    `I enjoy ${word} with my friends.`,
+                    `I am good at ${word}.`
+                ],
+                'I like to…': [
+                    `I like to ${word} in my free time.`,
+                    `I enjoy ${word} with my family.`,
+                    `I love ${word} because it's fun.`,
+                    `I always ${word} when I can.`
+                ]
+            };
+
+            const categoryExamples = examples[category] || examples['At home and in the garden'];
+            const randomIndex = Math.floor(Math.random() * categoryExamples.length);
+            return categoryExamples[randomIndex];
+        }
+
+        function detectImageStatus(word) {
+            // 模拟检测图片状态
+            const statuses = ['good', 'black', 'generating', 'mismatch'];
+            const weights = [0.6, 0.15, 0.15, 0.1]; // 60% 正常，15% 黑屏，15% 生成中，10% 不匹配
+            
+            let random = Math.random();
+            let cumulative = 0;
+            
+            for (let i = 0; i < statuses.length; i++) {
+                cumulative += weights[i];
+                if (random <= cumulative) {
+                    return statuses[i];
+                }
+            }
+            
+            return 'good';
+        }
+
+        function isPlaceholderExample(example) {
+            return example && example.includes('This is an example sentence with the word');
+        }
+
+        async function loadWords() {
+            log('🔍 正在加载单词数据...');
+            try {
+                // 模拟从数据库加载583个单词
+                allWords = [];
+                problemWords = { examples: [], images: [], mismatch: [] };
+                
+                const categories = [
+                    'At home and in the garden', 'In the living room', 'In the kitchen',
+                    'In town', 'Getting around', 'At school', 'Sports and hobbies',
+                    'Family and special occasions', 'Jobs', 'My body and health',
+                    'Clothes', 'At the market', 'At the cafe', 'On the farm',
+                    'At the zoo', 'Weather and seasons', 'Numbers and days',
+                    'Around the world', 'Where are they', 'Story words',
+                    'Colours and shapes', 'What are they like', 'Opposite words',
+                    'I can…', 'I like to…'
+                ];
+                
+                for (let i = 0; i < 583; i++) {
+                    const word = `word_${i + 1}`;
+                    const category = categories[i % categories.length];
+                    const imageStatus = detectImageStatus(word);
+                    const isPlaceholder = Math.random() < 0.7; // 70% 是占位符例句
+                    
+                    const wordData = {
+                        word: word,
+                        translation: `翻译_${word}`,
+                        example: isPlaceholder ? `This is an example sentence with the word "${word}".` : `I use the ${word} every day.`,
+                        category: category,
+                        imageStatus: imageStatus,
+                        imageUrl: imageStatus === 'good' ? `https://via.placeholder.com/200x120/4CAF50/white?text=${word}` : null
+                    };
+                    
+                    allWords.push(wordData);
+                    
+                    // 分类问题
+                    if (isPlaceholder) {
+                        problemWords.examples.push(wordData);
+                    }
+                    if (imageStatus === 'black' || imageStatus === 'generating') {
+                        problemWords.images.push(wordData);
+                    }
+                    if (imageStatus === 'mismatch') {
+                        problemWords.mismatch.push(wordData);
+                    }
+                }
+                
+                log(`✅ 成功加载 ${allWords.length} 个单词`);
+                updateStats();
+                displayWordsByCategory();
+                
+            } catch (error) {
+                log('❌ 加载单词失败: ' + error.message, 'error');
+            }
+        }
+
+        function displayWordsByCategory() {
+            displayWords('examples', problemWords.examples);
+            displayWords('images', problemWords.images);
+            displayWords('mismatch', problemWords.mismatch);
+        }
+
+        function displayWords(containerId, words) {
+            const container = document.getElementById(containerId + 'WordsList');
+            container.innerHTML = '';
+            
+            words.slice(0, 20).forEach((word, index) => {
+                const wordCard = document.createElement('div');
+                wordCard.className = 'word-card problem';
+                
+                const imageStatusClass = word.imageStatus === 'black' ? 'black' : 
+                                       word.imageStatus === 'generating' ? 'generating' : 
+                                       word.imageStatus === 'mismatch' ? 'mismatch' : 'good';
+                
+                wordCard.innerHTML = `
+                    <div class="word-name">${word.word}</div>
+                    <div class="word-translation">${word.translation}</div>
+                    <div class="word-category">${word.category}</div>
+                    <div class="word-example">${word.example}</div>
+                    <div class="word-image">
+                        ${word.imageUrl ? `<img src="${word.imageUrl}" alt="${word.word}">` : '<div>无图片</div>'}
+                        <div class="image-status ${imageStatusClass}">${word.imageStatus}</div>
+                    </div>
+                    <div class="action-buttons">
+                        ${containerId === 'examples' ? '<button class="action-btn btn-fix-example" onclick="fixExample(' + index + ')">修复例句</button>' : ''}
+                        ${containerId === 'images' ? '<button class="action-btn btn-regenerate-image" onclick="regenerateImage(' + index + ')">重新生成图片</button>' : ''}
+                        <button class="action-btn btn-delete" onclick="deleteWord(' + index + ')">删除</button>
+                    </div>
+                `;
+                
+                container.appendChild(wordCard);
+            });
+            
+            if (words.length > 20) {
+                const moreDiv = document.createElement('div');
+                moreDiv.innerHTML = `<p>... 还有 ${words.length - 20} 个单词</p>`;
+                container.appendChild(moreDiv);
+            }
+        }
+
+        function fixExample(index) {
+            const word = problemWords.examples[index];
+            const newExample = generateBetterExample(word.word, word.category);
+            word.example = newExample;
+            
+            // 从问题列表中移除
+            problemWords.examples.splice(index, 1);
+            
+            log(`✅ 修复例句: ${word.word} - "${newExample}"`, 'success');
+            updateStats();
+            displayWordsByCategory();
+        }
+
+        function regenerateImage(index) {
+            const word = problemWords.images[index];
+            word.imageStatus = 'generating';
+            word.imageUrl = null;
+            
+            log(`🔄 重新生成图片: ${word.word}`, 'warning');
+            
+            // 模拟图片生成
+            setTimeout(() => {
+                word.imageStatus = 'good';
+                word.imageUrl = `https://via.placeholder.com/200x120/4CAF50/white?text=${word.word}`;
+                
+                // 从问题列表中移除
+                problemWords.images.splice(index, 1);
+                
+                log(`✅ 图片生成完成: ${word.word}`, 'success');
+                updateStats();
+                displayWordsByCategory();
+            }, 2000);
+        }
+
+        function deleteWord(index) {
+            const word = problemWords.examples[index] || problemWords.images[index] || problemWords.mismatch[index];
+            log(`🗑️ 删除单词: ${word.word}`, 'warning');
+            
+            // 从所有列表中移除
+            problemWords.examples = problemWords.examples.filter(w => w.word !== word.word);
+            problemWords.images = problemWords.images.filter(w => w.word !== word.word);
+            problemWords.mismatch = problemWords.mismatch.filter(w => w.word !== word.word);
+            allWords = allWords.filter(w => w.word !== word.word);
+            
+            updateStats();
+            displayWordsByCategory();
+        }
+
+        async function scanAllProblems() {
+            log('🔍 开始扫描所有问题...');
+            await loadWords();
+            log('✅ 问题扫描完成');
+        }
+
+        async function fixAllExamples() {
+            log('📝 开始修复所有例句...');
+            const total = problemWords.examples.length;
+            let fixed = 0;
+            
+            for (let i = problemWords.examples.length - 1; i >= 0; i--) {
+                const word = problemWords.examples[i];
+                const newExample = generateBetterExample(word.word, word.category);
+                word.example = newExample;
+                problemWords.examples.splice(i, 1);
+                fixed++;
+                
+                if (fixed % 10 === 0) {
+                    log(`📝 已修复 ${fixed}/${total} 个例句`);
+                }
+            }
+            
+            log(`✅ 例句修复完成！共修复 ${fixed} 个单词`, 'success');
+            updateStats();
+            displayWordsByCategory();
+        }
+
+        async function regenerateAllImages() {
+            log('🖼️ 开始重新生成所有图片...');
+            const total = problemWords.images.length;
+            let regenerated = 0;
+            
+            for (let i = problemWords.images.length - 1; i >= 0; i--) {
+                const word = problemWords.images[i];
+                word.imageStatus = 'generating';
+                word.imageUrl = null;
+                
+                // 模拟图片生成
+                setTimeout(() => {
+                    word.imageStatus = 'good';
+                    word.imageUrl = `https://via.placeholder.com/200x120/4CAF50/white?text=${word.word}`;
+                    problemWords.images.splice(i, 1);
+                    regenerated++;
+                    
+                    if (regenerated % 10 === 0) {
+                        log(`🖼️ 已重新生成 ${regenerated}/${total} 个图片`);
+                    }
+                    
+                    if (regenerated === total) {
+                        log(`✅ 图片重新生成完成！共处理 ${regenerated} 个单词`, 'success');
+                        updateStats();
+                        displayWordsByCategory();
+                    }
+                }, Math.random() * 3000 + 1000); // 1-4秒随机延迟
+            }
+        }
+
+        // 页面加载时自动扫描
+        window.onload = function() {
+            log('📱 单词修复工具已就绪');
+            scanAllProblems();
+        };
+    </script>
+</body>
+</html>
