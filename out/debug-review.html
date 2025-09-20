@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试复习页面 - 单词仓库</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="font-nunito">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // 调试：检查所有可能的数据库
+        const debugDatabases = async () => {
+            const results = [];
+            
+            // 检查常见的数据库名称
+            const dbNames = ['WordAppDB', 'SharedImagePool', 'words-db', 'word-flashcard-app'];
+            
+            for (const dbName of dbNames) {
+                try {
+                    const request = indexedDB.open(dbName, 1);
+                    await new Promise((resolve, reject) => {
+                        request.onsuccess = () => {
+                            const db = request.result;
+                            const storeNames = Array.from(db.objectStoreNames);
+                            results.push({
+                                name: dbName,
+                                exists: true,
+                                stores: storeNames,
+                                version: db.version
+                            });
+                            db.close();
+                            resolve();
+                        };
+                        request.onerror = () => {
+                            results.push({
+                                name: dbName,
+                                exists: false,
+                                error: request.error
+                            });
+                            resolve();
+                        };
+                    });
+                } catch (error) {
+                    results.push({
+                        name: dbName,
+                        exists: false,
+                        error: error.message
+                    });
+                }
+            }
+            
+            return results;
+        };
+
+        // 获取所有单词 - 增强版本
+        const getAllWords = async () => {
+            try {
+                console.log('开始获取单词...');
+                
+                // 先检查所有数据库
+                const dbInfo = await debugDatabases();
+                console.log('数据库信息:', dbInfo);
+                
+                // 尝试从所有可能的数据库获取数据
+                const allWords = [];
+                
+                for (const dbInfo of dbInfo) {
+                    if (dbInfo.exists && dbInfo.stores.includes('words')) {
+                        try {
+                            const words = await new Promise((resolve) => {
+                                const request = indexedDB.open(dbInfo.name, dbInfo.version);
+                                request.onsuccess = function(event) {
+                                    const db = event.target.result;
+                                    const transaction = db.transaction(['words'], 'readonly');
+                                    const store = transaction.objectStore('words');
+                                    const getAllRequest = store.getAll();
+                                    
+                                    getAllRequest.onsuccess = function() {
+                                        const words = getAllRequest.result || [];
+                                        console.log(`从 ${dbInfo.name} 获取到 ${words.length} 个单词`);
+                                        resolve(words);
+                                    };
+                                    
+                                    getAllRequest.onerror = function() {
+                                        console.log(`从 ${dbInfo.name} 获取单词失败`);
+                                        resolve([]);
+                                    };
+                                };
+                                
+                                request.onerror = function() {
+                                    console.log(`打开 ${dbInfo.name} 失败`);
+                                    resolve([]);
+                                };
+                            });
+                            
+                            allWords.push(...words);
+                        } catch (error) {
+                            console.error(`从 ${dbInfo.name} 获取数据失败:`, error);
+                        }
+                    }
+                }
+                
+                console.log('总共获取到单词:', allWords.length);
+                console.log('单词详情:', allWords);
+                
+                return allWords.filter(word => word && word.word);
+                
+            } catch (error) {
+                console.error('获取单词失败:', error);
+                return [];
+            }
+        };
+
+        // 调试页面组件
+        const DebugReviewPage = () => {
+            const [words, setWords] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [debugInfo, setDebugInfo] = useState('');
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [showTranslation, setShowTranslation] = useState(false);
+
+            useEffect(() => {
+                loadWords();
+            }, []);
+
+            const loadWords = async () => {
+                try {
+                    const allWords = await getAllWords();
+                    setWords(allWords);
+                    setIsLoading(false);
+                    
+                    // 设置调试信息
+                    setDebugInfo(`找到 ${allWords.length} 个单词`);
+                } catch (error) {
+                    console.error('加载单词失败:', error);
+                    setDebugInfo(`加载失败: ${error.message}`);
+                    setIsLoading(false);
+                }
+            };
+
+            const currentWord = words[currentIndex];
+
+            if (isLoading) {
+                return React.createElement('div', {
+                    className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
+                }, React.createElement('div', {
+                    className: 'text-center'
+                }, [
+                    React.createElement('div', {
+                        key: 'spinner',
+                        className: 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'
+                    }),
+                    React.createElement('p', {
+                        key: 'text',
+                        className: 'text-gray-600'
+                    }, '调试中...')
+                ]));
+            }
+
+            return React.createElement('div', {
+                className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8'
+            }, [
+                React.createElement('div', {
+                    key: 'header',
+                    className: 'max-w-4xl mx-auto mb-8'
+                }, [
+                    React.createElement('h1', {
+                        key: 'title',
+                        className: 'text-3xl font-bold text-gray-800 mb-4'
+                    }, '调试复习页面'),
+                    React.createElement('p', {
+                        key: 'debug',
+                        className: 'text-lg text-blue-600 mb-4'
+                    }, debugInfo),
+                    React.createElement('p', {
+                        key: 'count',
+                        className: 'text-gray-600'
+                    }, `当前显示第 ${currentIndex + 1} 个单词，共 ${words.length} 个`)
+                ]),
+                
+                words.length > 0 && currentWord && React.createElement('div', {
+                    key: 'card',
+                    className: 'max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 mb-8'
+                }, [
+                    React.createElement('h2', {
+                        key: 'word',
+                        className: 'text-4xl font-bold text-gray-800 mb-4 text-center'
+                    }, currentWord.word),
+                    showTranslation && React.createElement('p', {
+                        key: 'translation',
+                        className: 'text-2xl text-blue-600 mb-4 text-center'
+                    }, currentWord.translation),
+                    currentWord.imageUrl && React.createElement('img', {
+                        key: 'image',
+                        src: currentWord.imageUrl,
+                        alt: currentWord.word,
+                        className: 'w-full h-64 object-cover rounded-lg mb-4',
+                        onError: (e) => {
+                            e.target.style.display = 'none';
+                        }
+                    }),
+                    React.createElement('div', {
+                        key: 'details',
+                        className: 'text-sm text-gray-500'
+                    }, [
+                        React.createElement('p', { key: 'id' }, `ID: ${currentWord.id}`),
+                        React.createElement('p', { key: 'created' }, `创建时间: ${currentWord.createdAt}`),
+                        React.createElement('p', { key: 'category' }, `分类: ${currentWord.category || '无'}`)
+                    ])
+                ]),
+                
+                React.createElement('div', {
+                    key: 'controls',
+                    className: 'max-w-2xl mx-auto flex justify-center space-x-4'
+                }, [
+                    React.createElement('button', {
+                        key: 'prev',
+                        onClick: () => setCurrentIndex(Math.max(0, currentIndex - 1)),
+                        disabled: currentIndex === 0,
+                        className: 'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50'
+                    }, '上一个'),
+                    React.createElement('button', {
+                        key: 'toggle',
+                        onClick: () => setShowTranslation(!showTranslation),
+                        className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
+                    }, showTranslation ? '隐藏翻译' : '显示翻译'),
+                    React.createElement('button', {
+                        key: 'next',
+                        onClick: () => setCurrentIndex(Math.min(words.length - 1, currentIndex + 1)),
+                        disabled: currentIndex === words.length - 1,
+                        className: 'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50'
+                    }, '下一个')
+                ]),
+                
+                words.length === 0 && React.createElement('div', {
+                    key: 'empty',
+                    className: 'max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center'
+                }, [
+                    React.createElement('h2', {
+                        key: 'title',
+                        className: 'text-2xl font-bold text-gray-800 mb-4'
+                    }, '没有找到单词'),
+                    React.createElement('p', {
+                        key: 'text',
+                        className: 'text-gray-600 mb-4'
+                    }, '请先添加一些单词，或者检查数据库连接'),
+                    React.createElement('a', {
+                        key: 'link',
+                        href: '/',
+                        className: 'inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700'
+                    }, '返回首页')
+                ])
+            ]);
+        };
+
+        // 渲染应用
+        ReactDOM.render(React.createElement(DebugReviewPage), document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复版复习页面 - 单词仓库</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="font-nunito">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // 安全地获取所有单词
+        const getAllWords = async () => {
+            try {
+                console.log('开始获取单词...');
+                
+                // 检查所有可能的数据库和存储
+                const dbNames = ['WordAppDB', 'SharedImagePool', 'words-db'];
+                const storeNames = ['words', 'word', 'items', 'data'];
+                
+                for (const dbName of dbNames) {
+                    try {
+                        const request = indexedDB.open(dbName, 1);
+                        const db = await new Promise((resolve, reject) => {
+                            request.onsuccess = () => resolve(request.result);
+                            request.onerror = () => reject(request.error);
+                        });
+                        
+                        console.log(`数据库 ${dbName} 存在，版本: ${db.version}`);
+                        console.log(`可用的存储: ${Array.from(db.objectStoreNames)}`);
+                        
+                        // 尝试每个可能的存储名称
+                        for (const storeName of storeNames) {
+                            if (db.objectStoreNames.contains(storeName)) {
+                                try {
+                                    const words = await new Promise((resolve, reject) => {
+                                        const transaction = db.transaction([storeName], 'readonly');
+                                        const store = transaction.objectStore(storeName);
+                                        const getAllRequest = store.getAll();
+                                        
+                                        getAllRequest.onsuccess = () => {
+                                            const words = getAllRequest.result || [];
+                                            console.log(`从 ${dbName}.${storeName} 获取到 ${words.length} 个单词`);
+                                            resolve(words);
+                                        };
+                                        
+                                        getAllRequest.onerror = () => {
+                                            console.log(`从 ${dbName}.${storeName} 获取失败`);
+                                            resolve([]);
+                                        };
+                                    });
+                                    
+                                    if (words.length > 0) {
+                                        db.close();
+                                        return words.filter(word => word && word.word);
+                                    }
+                                } catch (error) {
+                                    console.log(`访问 ${dbName}.${storeName} 失败:`, error);
+                                }
+                            }
+                        }
+                        
+                        db.close();
+                    } catch (error) {
+                        console.log(`数据库 ${dbName} 不存在或无法访问:`, error);
+                    }
+                }
+                
+                console.log('没有找到任何单词数据');
+                return [];
+                
+            } catch (error) {
+                console.error('获取单词失败:', error);
+                return [];
+            }
+        };
+
+        // 复习页面组件
+        const ReviewPage = () => {
+            const [words, setWords] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [debugInfo, setDebugInfo] = useState('');
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [showTranslation, setShowTranslation] = useState(false);
+
+            useEffect(() => {
+                loadWords();
+            }, []);
+
+            const loadWords = async () => {
+                try {
+                    const allWords = await getAllWords();
+                    setWords(allWords);
+                    setIsLoading(false);
+                    
+                    if (allWords.length > 0) {
+                        setDebugInfo(`找到 ${allWords.length} 个单词`);
+                    } else {
+                        setDebugInfo('没有找到单词数据，请先添加一些单词');
+                    }
+                } catch (error) {
+                    console.error('加载单词失败:', error);
+                    setDebugInfo(`加载失败: ${error.message}`);
+                    setIsLoading(false);
+                }
+            };
+
+            const currentWord = words[currentIndex];
+            const progress = words.length > 0 ? ((currentIndex + 1) / words.length) * 100 : 0;
+
+            const handleNext = () => {
+                if (currentIndex < words.length - 1) {
+                    setCurrentIndex(currentIndex + 1);
+                    setShowTranslation(false);
+                }
+            };
+
+            const handlePrevious = () => {
+                if (currentIndex > 0) {
+                    setCurrentIndex(currentIndex - 1);
+                    setShowTranslation(false);
+                }
+            };
+
+            const handleToggleTranslation = () => {
+                setShowTranslation(!showTranslation);
+            };
+
+            const handleRestart = () => {
+                setCurrentIndex(0);
+                setShowTranslation(false);
+            };
+
+            if (isLoading) {
+                return React.createElement('div', {
+                    className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
+                }, React.createElement('div', {
+                    className: 'text-center'
+                }, [
+                    React.createElement('div', {
+                        key: 'spinner',
+                        className: 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'
+                    }),
+                    React.createElement('p', {
+                        key: 'text',
+                        className: 'text-gray-600'
+                    }, '加载单词中...')
+                ]));
+            }
+
+            if (words.length === 0) {
+                return React.createElement('div', {
+                    className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100'
+                }, [
+                    React.createElement('nav', {
+                        key: 'nav',
+                        className: 'bg-white shadow-sm border-b'
+                    }, React.createElement('div', {
+                        className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+                    }, React.createElement('div', {
+                        className: 'flex justify-between h-16'
+                    }, React.createElement('div', {
+                        className: 'flex items-center'
+                    }, [
+                        React.createElement('h1', {
+                            key: 'title',
+                            className: 'text-xl font-semibold text-gray-800'
+                        }, '单词仓库'),
+                        React.createElement('div', {
+                            key: 'links',
+                            className: 'ml-10 flex items-baseline space-x-4'
+                        }, [
+                            React.createElement('a', {
+                                key: 'home',
+                                href: '/',
+                                className: 'text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium'
+                            }, '首页'),
+                            React.createElement('a', {
+                                key: 'manage',
+                                href: '/manage',
+                                className: 'text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium'
+                            }, '词汇管理'),
+                            React.createElement('a', {
+                                key: 'review',
+                                href: '/review',
+                                className: 'bg-blue-100 text-blue-700 px-3 py-2 rounded-md text-sm font-medium'
+                            }, '复习')
+                        ])
+                    ])))),
+                    React.createElement('div', {
+                        key: 'content',
+                        className: 'max-w-4xl mx-auto p-8'
+                    }, React.createElement('div', {
+                        className: 'text-center'
+                    }, [
+                        React.createElement('h1', {
+                            key: 'title',
+                            className: 'text-3xl font-bold text-gray-800 mb-4'
+                        }, '复习页面'),
+                        React.createElement('p', {
+                            key: 'debug',
+                            className: 'text-lg text-blue-600 mb-4'
+                        }, debugInfo),
+                        React.createElement('p', {
+                            key: 'text',
+                            className: 'text-gray-600 mb-8'
+                        }, '请先添加一些单词，然后返回这里进行复习。'),
+                        React.createElement('a', {
+                            key: 'link',
+                            href: '/',
+                            className: 'inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                        }, '添加单词')
+                    ]))
+                ]);
+            }
+
+            return React.createElement('div', {
+                className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100'
+            }, [
+                // 导航栏
+                React.createElement('nav', {
+                    key: 'nav',
+                    className: 'bg-white shadow-sm border-b'
+                }, React.createElement('div', {
+                    className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+                }, React.createElement('div', {
+                    className: 'flex justify-between h-16'
+                }, React.createElement('div', {
+                    className: 'flex items-center'
+                }, [
+                    React.createElement('h1', {
+                        key: 'title',
+                        className: 'text-xl font-semibold text-gray-800'
+                    }, '单词仓库'),
+                    React.createElement('div', {
+                        key: 'links',
+                        className: 'ml-10 flex items-baseline space-x-4'
+                    }, [
+                        React.createElement('a', {
+                            key: 'home',
+                            href: '/',
+                            className: 'text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium'
+                        }, '首页'),
+                        React.createElement('a', {
+                            key: 'manage',
+                            href: '/manage',
+                            className: 'text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium'
+                        }, '词汇管理'),
+                        React.createElement('a', {
+                            key: 'review',
+                            href: '/review',
+                            className: 'bg-blue-100 text-blue-700 px-3 py-2 rounded-md text-sm font-medium'
+                        }, '复习')
+                    ])
+                ])))),
+                
+                // 进度条
+                React.createElement('div', {
+                    key: 'progress',
+                    className: 'w-full bg-gray-200 h-2'
+                }, React.createElement('div', {
+                    className: 'bg-blue-600 h-2 transition-all duration-300',
+                    style: { width: `${progress}%` }
+                })),
+                
+                // 主要内容
+                React.createElement('div', {
+                    key: 'main',
+                    className: 'max-w-4xl mx-auto p-8'
+                }, [
+                    // 头部信息
+                    React.createElement('div', {
+                        key: 'header',
+                        className: 'text-center mb-8'
+                    }, [
+                        React.createElement('h1', {
+                            key: 'title',
+                            className: 'text-3xl font-bold text-gray-800 mb-2'
+                        }, '复习模式'),
+                        React.createElement('p', {
+                            key: 'progress-text',
+                            className: 'text-gray-600'
+                        }, `${currentIndex + 1} / ${words.length}`)
+                    ]),
+                    
+                    // 复习卡片
+                    React.createElement('div', {
+                        key: 'card',
+                        className: 'flex justify-center mb-8'
+                    }, currentWord && React.createElement('div', {
+                        className: 'bg-white rounded-xl shadow-lg p-8 max-w-md w-full mx-auto cursor-pointer transform hover:scale-105 transition-transform duration-200',
+                        onClick: handleToggleTranslation
+                    }, [
+                        React.createElement('div', {
+                            key: 'image',
+                            className: 'mb-6'
+                        }, [
+                            currentWord.imageUrl ? 
+                                React.createElement('img', {
+                                    key: 'img',
+                                    src: currentWord.imageUrl,
+                                    alt: currentWord.word,
+                                    className: 'w-full h-48 object-cover rounded-lg',
+                                    onError: (e) => {
+                                        e.target.style.display = 'none';
+                                    }
+                                }) :
+                                React.createElement('div', {
+                                    key: 'placeholder',
+                                    className: 'w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center'
+                                }, React.createElement('span', { className: 'text-gray-500' }, '暂无图片'))
+                        ]),
+                        React.createElement('div', {
+                            key: 'content',
+                            className: 'text-center'
+                        }, [
+                            React.createElement('h2', {
+                                key: 'word',
+                                className: 'text-3xl font-bold text-gray-800 mb-4'
+                            }, currentWord.word),
+                            showTranslation && React.createElement('p', {
+                                key: 'translation',
+                                className: 'text-xl text-blue-600 mb-2'
+                            }, currentWord.translation),
+                            currentWord.example && showTranslation && React.createElement('p', {
+                                key: 'example',
+                                className: 'text-sm text-gray-600 italic'
+                            }, currentWord.example)
+                        ])
+                    ])),
+                    
+                    // 控制按钮
+                    React.createElement('div', {
+                        key: 'controls',
+                        className: 'flex justify-center items-center space-x-4'
+                    }, [
+                        React.createElement('button', {
+                            key: 'prev',
+                            onClick: handlePrevious,
+                            disabled: currentIndex === 0,
+                            className: 'flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                        }, [
+                            React.createElement('span', { key: 'icon', className: 'mr-2' }, '←'),
+                            '上一个'
+                        ]),
+                        React.createElement('button', {
+                            key: 'toggle',
+                            onClick: handleToggleTranslation,
+                            className: 'flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                        }, [
+                            React.createElement('span', { key: 'icon', className: 'mr-2' }, '🔊'),
+                            showTranslation ? '隐藏翻译' : '显示翻译'
+                        ]),
+                        React.createElement('button', {
+                            key: 'next',
+                            onClick: handleNext,
+                            disabled: currentIndex === words.length - 1,
+                            className: 'flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+                        }, [
+                            '下一个',
+                            React.createElement('span', { key: 'icon', className: 'ml-2' }, '→')
+                        ])
+                    ]),
+                    
+                    // 重新开始按钮
+                    React.createElement('div', {
+                        key: 'restart',
+                        className: 'text-center mt-8'
+                    }, React.createElement('button', {
+                        onClick: handleRestart,
+                        className: 'flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors mx-auto'
+                    }, [
+                        React.createElement('span', { key: 'icon', className: 'mr-2' }, '🔄'),
+                        '重新开始'
+                    ]))
+                ])
+            ]);
+        };
+
+        // 使用 createRoot 而不是 ReactDOM.render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(ReviewPage));
+    </script>
+</body>
+</html>

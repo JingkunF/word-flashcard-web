@@ -3,8 +3,8 @@
 import { motion } from 'framer-motion';
 import { Edit2, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { Word, Category } from '@/types';
-import { updateWord } from '@/utils/dataAdapter';
+import { Word, Category } from '../types';
+import { updateWord } from '../utils/dataAdapter';
 import ImageWithRetry from './ImageWithRetry';
 
 interface SimpleCardProps {

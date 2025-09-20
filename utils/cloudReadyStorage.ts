@@ -3,7 +3,7 @@
  * 支持本地开发 → 云端发布的平滑迁移
  */
 
-import { Word } from '@/types';
+import { Word } from '../types';
 
 // 用户数据结构（可上传到云端）
 export interface UserData {

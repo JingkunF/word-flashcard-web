@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save } from 'lucide-react';
-import { Word, Category } from '@/types';
-import { getCategories } from '@/utils/categoryStorage';
+import { Word, Category } from '../types';
+import { getCategories } from '../utils/categoryStorage';
 
 interface EditWordModalProps {
   word: Word;

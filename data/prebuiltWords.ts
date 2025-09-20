@@ -3,7 +3,7 @@
  * 这些单词已经预先生成了AI图片和完整信息，可以被所有用户共享使用
  */
 
-import { Word } from '@/types';
+import { Word } from '../types';
 
 export interface PrebuiltWord extends Omit<Word, 'id' | 'categories' | 'reviewCount' | 'lastReviewTime' | 'createdAt'> {
   // 预制单词的唯一标识符

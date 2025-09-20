@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Volume2 } from 'lucide-react';
-import { Word } from '@/types';
-import { speakWord } from '@/utils/speech';
+import { Word } from '../types';
+import { speakWord } from '../utils/speech';
 
 interface ReviewCardProps {
   word: Word;

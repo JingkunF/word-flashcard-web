@@ -3,9 +3,9 @@
  * 处理主题词库的导入、共享池调用和重复单词处理
  */
 
-import { Word } from '@/types';
-import { ThemeWordbank, ThemeWord, getAllThemeWordbanks, getThemeWordbankById } from '@/data/completeWordbook';
-import { beginnerWordbank, beginnerWordbankInfo, BeginnerWord } from '@/data/beginnerWordbank';
+import { Word } from '../types';
+import { ThemeWordbank, ThemeWord, getAllThemeWordbanks, getThemeWordbankById } from '../data/completeWordbook';
+import { beginnerWordbank, beginnerWordbankInfo, BeginnerWord } from '../data/beginnerWordbank';
 import { generateWordImageSmart } from './sharedImagePool';
 import { addWord } from './dataAdapter';
 
@@ -302,18 +302,29 @@ export class ThemeWordbankManager {
             };
           }
 
-          // 生成图片 - 如果AI生图失败，使用SVG作为备选
+          // 优先使用共享池中的图片，避免重复AI生成
           let imageUrl;
           try {
-            const imageResult = await generateWordImageSmart(themeWord.word);
-            if (imageResult.success && imageResult.imageUrl) {
-              imageUrl = imageResult.imageUrl;
-              console.log(`✅ AI生图成功: ${themeWord.word}`);
+            // 1. 首先检查共享池中是否已有图片
+            const { cloudStorage } = await import('@/utils/cloudReadyStorage');
+            const sharedImage = await cloudStorage.getSharedImage(themeWord.word);
+            
+            if (sharedImage) {
+              imageUrl = sharedImage;
+              console.log(`✅ 从共享池获取图片: ${themeWord.word}`);
             } else {
-              throw new Error(`AI生图失败: ${imageResult.error || '未知错误'}`);
+              // 2. 共享池没有，使用AI生成
+              console.log(`🤖 共享池中没有"${themeWord.word}"，使用AI生成...`);
+              const imageResult = await generateWordImageSmart(themeWord.word);
+              if (imageResult.success && imageResult.imageUrl) {
+                imageUrl = imageResult.imageUrl;
+                console.log(`✅ AI生图成功: ${themeWord.word}`);
+              } else {
+                throw new Error(`AI生图失败: ${imageResult.error || '未知错误'}`);
+              }
             }
           } catch (error) {
-            console.warn(`⚠️ AI生图失败，使用SVG备选: ${themeWord.word}`, error);
+            console.warn(`⚠️ 图片获取失败，使用SVG备选: ${themeWord.word}`, error);
             // 使用SVG作为备选方案
             const { generateSimpleSVG } = await import('@/utils/simpleSvg');
             imageUrl = generateSimpleSVG(themeWord.word);
@@ -424,7 +435,8 @@ export class ThemeWordbankManager {
    * 重复单词会更新图片（使用新的提示词），但保持现有数据
    */
   public async importBeginnerWordbank(
-    onProgress?: (current: number, total: number, word: string) => void
+    onProgress?: (current: number, total: number, word: string) => void,
+    quickMode: boolean = false
   ): Promise<ImportResult> {
     const result: ImportResult = {
       success: true,

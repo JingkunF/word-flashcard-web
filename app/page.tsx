@@ -3,19 +3,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Loader2, Check, AlertCircle } from 'lucide-react';
-import { checkWordExists, normalizeWord } from '@/utils/storage';
-import { addWord, getAllWords, batchUpdateTranslations } from '@/utils/dataAdapter';
-import { generateWordImage } from '@/utils/aiImage';
-import { generateWordImageSmart } from '@/utils/sharedImagePool';
-import { Category, PRESET_WORDS, Word } from '@/types';
-import { getCategories } from '@/utils/categoryStorage';
-import { clearAllStorage } from '@/utils/clearStorage';
-import { checkSpelling, getBestSuggestion } from '@/utils/spellCheck';
-import { getUserInitState, tryMatchPrebuiltWord } from '@/utils/prebuiltManager';
-import { getWordExample, getWordTranslation } from '@/utils/exampleGenerator';
-import { ThemeWordbankManager } from '@/utils/themeWordbankManager';
-import CategoryManager from '@/components/CategoryManager';
-import Navigation from '@/components/Navigation';
+import { checkWordExists, normalizeWord } from '../utils/storage';
+import { addWord, getAllWords, batchUpdateTranslations } from '../utils/dataAdapter';
+import { generateWordImage } from '../utils/aiImage';
+import { generateWordImageSmart } from '../utils/sharedImagePool';
+import { Category, PRESET_WORDS, Word } from '../types';
+import { getCategories } from '../utils/categoryStorage';
+// import { clearAllStorage } from '../utils/clearStorage'; // 文件已删除
+import { checkSpelling, getBestSuggestion } from '../utils/spellCheck';
+import { getUserInitState, tryMatchPrebuiltWord } from '../utils/prebuiltManager';
+import { getWordExample, getWordTranslation } from '../utils/exampleGenerator';
+import { ThemeWordbankManager } from '../utils/themeWordbankManager';
+import CategoryManager from '../components/CategoryManager';
+import Navigation from '../components/Navigation';
 
 export default function HomePage() {
   console.log('🏠 HomePage 组件已加载');

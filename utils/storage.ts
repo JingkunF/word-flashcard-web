@@ -1,6 +1,6 @@
 
 // 本地存储工具函数
-import { Word, PRESET_WORDS } from '@/types';
+import { Word, PRESET_WORDS } from '../types';
 import { generateSimpleSVG } from './simpleSvg';
 
 // 增强版单词SVG图片生成器

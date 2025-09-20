@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查共享图片池</title>
+</head>
+<body>
+    <h1>共享图片池检查</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkSharedPool() {
+            const results = document.getElementById('results');
+            
+            try {
+                // 打开共享数据库
+                const dbName = 'wordflashcard_shared';
+                const request = indexedDB.open(dbName, 5);
+                
+                request.onsuccess = () => {
+                    const db = request.result;
+                    console.log('数据库打开成功:', db);
+                    
+                    // 检查images表
+                    if (db.objectStoreNames.contains('images')) {
+                        const transaction = db.transaction(['images'], 'readonly');
+                        const store = transaction.objectStore('images');
+                        const getAllRequest = store.getAll();
+                        
+                        getAllRequest.onsuccess = () => {
+                            const images = getAllRequest.result;
+                            console.log('共享图片池中的图片数量:', images.length);
+                            
+                            results.innerHTML += `<h2>共享图片池 (${images.length} 张图片)</h2>`;
+                            images.slice(0, 20).forEach(img => {
+                                results.innerHTML += `<div>
+                                    <strong>${img.word}</strong>: ${img.imageUrl ? '有图片' : '无图片'}
+                                    <br>使用次数: ${img.usageCount || 0}
+                                    <br>生成时间: ${new Date(img.generatedAt).toLocaleString()}
+                                </div><br>`;
+                            });
+                            
+                            if (images.length > 20) {
+                                results.innerHTML += `<p>... 还有 ${images.length - 20} 张图片</p>`;
+                            }
+                        };
+                    }
+                    
+                    // 检查words表
+                    if (db.objectStoreNames.contains('words')) {
+                        const transaction = db.transaction(['words'], 'readonly');
+                        const store = transaction.objectStore('words');
+                        const getAllRequest = store.getAll();
+                        
+                        getAllRequest.onsuccess = () => {
+                            const words = getAllRequest.result;
+                            console.log('共享单词池中的单词数量:', words.length);
+                            
+                            results.innerHTML += `<h2>共享单词池 (${words.length} 个单词)</h2>`;
+                            words.slice(0, 20).forEach(word => {
+                                results.innerHTML += `<div>
+                                    <strong>${word.word}</strong>: ${word.translation}
+                                    <br>图片: ${word.imageUrl ? '有' : '无'}
+                                    <br>分类: ${word.categories ? word.categories.join(', ') : '无'}
+                                </div><br>`;
+                            });
+                            
+                            if (words.length > 20) {
+                                results.innerHTML += `<p>... 还有 ${words.length - 20} 个单词</p>`;
+                            }
+                        };
+                    }
+                };
+                
+                request.onerror = () => {
+                    results.innerHTML = '<p>无法打开数据库: ' + request.error + '</p>';
+                };
+                
+            } catch (error) {
+                results.innerHTML = '<p>错误: ' + error.message + '</p>';
+            }
+        }
+        
+        // 页面加载时检查
+        window.onload = checkSharedPool;
+    </script>
+</body>
+</html>

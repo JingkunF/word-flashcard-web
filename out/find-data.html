@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据查找工具</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="font-nunito">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // 全面检查所有可能的数据存储
+        const findAllData = async () => {
+            const results = [];
+            
+            // 检查所有可能的数据库
+            const dbNames = ['WordAppDB', 'SharedImagePool', 'words-db', 'word-flashcard-app', 'words', 'vocabulary'];
+            
+            for (const dbName of dbNames) {
+                try {
+                    // 尝试不同的版本号
+                    for (let version = 1; version <= 10; version++) {
+                        try {
+                            const request = indexedDB.open(dbName, version);
+                            const db = await new Promise((resolve, reject) => {
+                                request.onsuccess = () => resolve(request.result);
+                                request.onerror = () => reject(request.error);
+                            });
+                            
+                            const storeNames = Array.from(db.objectStoreNames);
+                            console.log(`数据库 ${dbName} v${version}:`, storeNames);
+                            
+                            // 检查每个存储
+                            for (const storeName of storeNames) {
+                                try {
+                                    const transaction = db.transaction([storeName], 'readonly');
+                                    const store = transaction.objectStore(storeName);
+                                    const countRequest = store.count();
+                                    
+                                    const count = await new Promise((resolve, reject) => {
+                                        countRequest.onsuccess = () => resolve(countRequest.result);
+                                        countRequest.onerror = () => reject(countRequest.error);
+                                    });
+                                    
+                                    if (count > 0) {
+                                        // 获取一些样本数据
+                                        const sampleRequest = store.getAll();
+                                        const sampleData = await new Promise((resolve, reject) => {
+                                            sampleRequest.onsuccess = () => resolve(sampleRequest.result.slice(0, 3));
+                                            sampleRequest.onerror = () => reject(sampleRequest.error);
+                                        });
+                                        
+                                        results.push({
+                                            database: dbName,
+                                            version: version,
+                                            store: storeName,
+                                            count: count,
+                                            sample: sampleData
+                                        });
+                                        
+                                        console.log(`找到数据: ${dbName}.${storeName} (${count} 条记录)`);
+                                    }
+                                } catch (error) {
+                                    console.log(`检查存储 ${dbName}.${storeName} 失败:`, error);
+                                }
+                            }
+                            
+                            db.close();
+                        } catch (error) {
+                            // 版本不存在，继续下一个
+                        }
+                    }
+                } catch (error) {
+                    console.log(`数据库 ${dbName} 不存在:`, error);
+                }
+            }
+            
+            // 检查 localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                try {
+                    const parsed = JSON.parse(value);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        results.push({
+                            type: 'localStorage',
+                            key: key,
+                            count: parsed.length,
+                            sample: parsed.slice(0, 3)
+                        });
+                        console.log(`找到 localStorage 数据: ${key} (${parsed.length} 条记录)`);
+                    }
+                } catch (e) {
+                    // 不是JSON数据
+                }
+            }
+            
+            return results;
+        };
+
+        const DataFinder = () => {
+            const [results, setResults] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const loadData = async () => {
+                try {
+                    const data = await findAllData();
+                    setResults(data);
+                    setIsLoading(false);
+                } catch (error) {
+                    console.error('查找数据失败:', error);
+                    setIsLoading(false);
+                }
+            };
+
+            if (isLoading) {
+                return React.createElement('div', {
+                    className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
+                }, React.createElement('div', {
+                    className: 'text-center'
+                }, [
+                    React.createElement('div', {
+                        key: 'spinner',
+                        className: 'animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'
+                    }),
+                    React.createElement('p', {
+                        key: 'text',
+                        className: 'text-gray-600'
+                    }, '正在查找数据...')
+                ]));
+            }
+
+            return React.createElement('div', {
+                className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8'
+            }, [
+                React.createElement('div', {
+                    key: 'header',
+                    className: 'max-w-6xl mx-auto mb-8'
+                }, [
+                    React.createElement('h1', {
+                        key: 'title',
+                        className: 'text-3xl font-bold text-gray-800 mb-4'
+                    }, '数据查找工具'),
+                    React.createElement('p', {
+                        key: 'subtitle',
+                        className: 'text-lg text-gray-600'
+                    }, `找到 ${results.length} 个数据源`)
+                ]),
+                
+                React.createElement('div', {
+                    key: 'results',
+                    className: 'max-w-6xl mx-auto space-y-6'
+                }, results.map((result, index) => 
+                    React.createElement('div', {
+                        key: index,
+                        className: 'bg-white rounded-lg shadow-lg p-6'
+                    }, [
+                        React.createElement('h2', {
+                            key: 'title',
+                            className: 'text-xl font-bold text-gray-800 mb-4'
+                        }, result.type === 'localStorage' ? 
+                            `localStorage: ${result.key}` : 
+                            `数据库: ${result.database} v${result.version}.${result.store}`),
+                        React.createElement('p', {
+                            key: 'count',
+                            className: 'text-lg text-blue-600 mb-4'
+                        }, `记录数量: ${result.count}`),
+                        React.createElement('div', {
+                            key: 'sample',
+                            className: 'bg-gray-50 rounded p-4'
+                        }, [
+                            React.createElement('h3', {
+                                key: 'sample-title',
+                                className: 'font-bold text-gray-700 mb-2'
+                            }, '样本数据:'),
+                            React.createElement('pre', {
+                                key: 'sample-data',
+                                className: 'text-sm text-gray-600 overflow-auto'
+                            }, JSON.stringify(result.sample, null, 2))
+                        ])
+                    ])
+                )),
+                
+                results.length === 0 && React.createElement('div', {
+                    key: 'empty',
+                    className: 'max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center'
+                }, [
+                    React.createElement('h2', {
+                        key: 'title',
+                        className: 'text-2xl font-bold text-gray-800 mb-4'
+                    }, '没有找到任何数据'),
+                    React.createElement('p', {
+                        key: 'text',
+                        className: 'text-gray-600'
+                    }, '请先添加一些单词或导入词库')
+                ])
+            ]);
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(DataFinder));
+    </script>
+</body>
+</html>

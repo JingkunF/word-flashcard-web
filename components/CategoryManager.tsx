@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
-import { Category } from '@/types';
-import { addCategory, updateCategoryName, deleteCategory, getRandomColor } from '@/utils/categoryStorage';
+import { Category } from '../types';
+import { addCategory, updateCategoryName, deleteCategory, getRandomColor } from '../utils/categoryStorage';
 
 interface CategoryManagerProps {
   categories: Category[];

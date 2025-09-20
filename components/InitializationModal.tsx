@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, BookOpen, Sparkles, Users, Clock } from 'lucide-react';
-import { PrebuiltCategory } from '@/data/prebuiltWords';
-import { importPrebuiltCategories, getPrebuiltStats } from '@/utils/prebuiltManager';
+import { PrebuiltCategory } from '../data/prebuiltWords';
+import { importPrebuiltCategories, getPrebuiltStats } from '../utils/prebuiltManager';
 
 interface InitializationModalProps {
   isOpen: boolean;

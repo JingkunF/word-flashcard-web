@@ -2,17 +2,18 @@ export interface BeginnerWord {
   word: string;
   translation: string;
   imagePrompt: string;
+  imageUrl?: string; // 预生成的图片URL
   category: string;
   theme: string;
   example?: string;
 }
 
 export const beginnerWordbank: BeginnerWord[] = [
-  { word: 'apple', translation: '苹果', imagePrompt: 'cute cartoon apple with smiling face on green leaf', category: '', theme: '启蒙基础' },
-  { word: 'ball', translation: '球', imagePrompt: 'cute cartoon colorful ball bouncing on grass', category: '', theme: '启蒙基础' },
-  { word: 'cat', translation: '猫', imagePrompt: 'adorable cartoon kitten playing with yarn', category: '', theme: '启蒙基础' },
-  { word: 'dog', translation: '狗', imagePrompt: 'cute cartoon puppy wagging tail happily', category: '', theme: '启蒙基础' },
-  { word: 'eat', translation: '吃', imagePrompt: 'cute cartoon child eating a sandwich with big smile', category: '', theme: '启蒙基础' },
+  { word: 'apple', translation: '苹果', imagePrompt: 'cute cartoon apple with smiling face on green leaf', imageUrl: 'https://image.pollinations.ai/prompt/cute%20cartoon%20apple%20with%20smiling%20face%20on%20green%20leaf?model=flux&enhance=true', category: '', theme: '启蒙基础' },
+  { word: 'ball', translation: '球', imagePrompt: 'cute cartoon colorful ball bouncing on grass', imageUrl: 'https://image.pollinations.ai/prompt/cute%20cartoon%20colorful%20ball%20bouncing%20on%20grass?model=flux&enhance=true', category: '', theme: '启蒙基础' },
+  { word: 'cat', translation: '猫', imagePrompt: 'adorable cartoon kitten playing with yarn', imageUrl: 'https://image.pollinations.ai/prompt/adorable%20cartoon%20kitten%20playing%20with%20yarn?model=flux&enhance=true', category: '', theme: '启蒙基础' },
+  { word: 'dog', translation: '狗', imagePrompt: 'cute cartoon puppy wagging tail happily', imageUrl: 'https://image.pollinations.ai/prompt/cute%20cartoon%20puppy%20wagging%20tail%20happily?model=flux&enhance=true', category: '', theme: '启蒙基础' },
+  { word: 'eat', translation: '吃', imagePrompt: 'cute cartoon child eating a sandwich with big smile', imageUrl: 'https://image.pollinations.ai/prompt/cute%20cartoon%20child%20eating%20a%20sandwich%20with%20big%20smile?model=flux&enhance=true', category: '', theme: '启蒙基础' },
   { word: 'go', translation: '去', imagePrompt: 'cartoon kid walking happily on path under sun', category: '', theme: '启蒙基础' },
   { word: 'run', translation: '跑', imagePrompt: 'cute cartoon child running fast with joyful expression', category: '', theme: '启蒙基础' },
   { word: 'big', translation: '大的', imagePrompt: 'cute cartoon big friendly bear waving paw', category: '', theme: '启蒙基础' },

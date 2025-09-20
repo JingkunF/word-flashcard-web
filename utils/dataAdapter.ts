@@ -3,7 +3,7 @@
  * 优先使用 IndexedDB，如果没有数据则回退到 localStorage
  */
 
-import { Word, Category } from '@/types';
+import { Word, Category } from '../types';
 import { getStoredData, addWord as addWordToStorage, deleteWord as deleteWordFromStorage, updateWord as updateWordInStorage } from './storage';
 // 移除旧的localDatabase导入，完全使用新的cloudReadyStorage架构
 import { cloudStorage } from './cloudReadyStorage';

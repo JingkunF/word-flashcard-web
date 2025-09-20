@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 
 export const metadata: Metadata = {
   title: '单词仓库 - 儿童英语词汇学习工具',

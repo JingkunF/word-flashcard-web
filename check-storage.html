@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查所有存储</title>
+</head>
+<body>
+    <h1>检查所有存储方式</h1>
+    <div id="results"></div>
+    
+    <script>
+        function checkAllStorage() {
+            const results = document.getElementById('results');
+            
+            // 检查localStorage
+            results.innerHTML += '<h2>LocalStorage</h2>';
+            const localStorageKeys = Object.keys(localStorage);
+            results.innerHTML += `<p>LocalStorage 键数量: ${localStorageKeys.length}</p>`;
+            
+            localStorageKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (key.includes('word') || key.includes('image') || key.includes('flashcard')) {
+                    results.innerHTML += `<p><strong>${key}:</strong> ${value.length > 100 ? value.substring(0, 100) + '...' : value}</p>`;
+                }
+            });
+            
+            // 检查sessionStorage
+            results.innerHTML += '<h2>SessionStorage</h2>';
+            const sessionStorageKeys = Object.keys(sessionStorage);
+            results.innerHTML += `<p>SessionStorage 键数量: ${sessionStorageKeys.length}</p>`;
+            
+            sessionStorageKeys.forEach(key => {
+                const value = sessionStorage.getItem(key);
+                if (key.includes('word') || key.includes('image') || key.includes('flashcard')) {
+                    results.innerHTML += `<p><strong>${key}:</strong> ${value.length > 100 ? value.substring(0, 100) + '...' : value}</p>`;
+                }
+            });
+            
+            // 检查IndexedDB
+            results.innerHTML += '<h2>IndexedDB</h2>';
+            if ('indexedDB' in window) {
+                indexedDB.databases().then(databases => {
+                    results.innerHTML += `<p>IndexedDB 数据库数量: ${databases.length}</p>`;
+                    databases.forEach(db => {
+                        results.innerHTML += `<p>  - ${db.name} (版本: ${db.version})</p>`;
+                    });
+                }).catch(error => {
+                    results.innerHTML += `<p>获取IndexedDB信息失败: ${error.message}</p>`;
+                });
+            } else {
+                results.innerHTML += '<p>浏览器不支持IndexedDB</p>';
+            }
+        }
+        
+        // 页面加载时检查
+        window.onload = checkAllStorage;
+    </script>
+</body>
+</html>

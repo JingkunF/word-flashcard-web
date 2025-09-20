@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检查共享数据库</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .word-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .word-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>共享数据库检查工具</h1>
+        
+        <div class="section">
+            <h3>数据库状态</h3>
+            <div id="db-status">检查中...</div>
+            <button onclick="checkDatabase()">重新检查</button>
+        </div>
+
+        <div class="section">
+            <h3>统计信息</h3>
+            <div class="stats" id="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="total-images">-</div>
+                    <div class="stat-label">总图片数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="total-words">-</div>
+                    <div class="stat-label">总单词数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="shared-images">-</div>
+                    <div class="stat-label">共享图片数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="db-size">-</div>
+                    <div class="stat-label">数据库大小</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>操作</h3>
+            <button onclick="clearSharedImages()">清空共享图片</button>
+            <button onclick="exportData()">导出数据</button>
+            <button onclick="showRecentWords()">显示最近单词</button>
+        </div>
+
+        <div class="section">
+            <h3>最近添加的单词</h3>
+            <div id="recent-words" class="word-list">点击"显示最近单词"查看</div>
+        </div>
+
+        <div class="section">
+            <h3>日志</h3>
+            <div id="logs" style="background: #f8f9fa; padding: 10px; border-radius: 4px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            logs.innerHTML += `[${time}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function checkDatabase() {
+            try {
+                log('开始检查数据库...');
+                
+                // 检查IndexedDB是否可用
+                if (!window.indexedDB) {
+                    throw new Error('IndexedDB不可用');
+                }
+
+                // 检查共享图片数据库
+                const sharedDbRequest = indexedDB.open('SharedImagePool', 1);
+                
+                sharedDbRequest.onsuccess = function(event) {
+                    const db = event.target.result;
+                    log('共享图片数据库连接成功');
+                    
+                    // 检查图片存储
+                    const imageTransaction = db.transaction(['images'], 'readonly');
+                    const imageStore = imageTransaction.objectStore('images');
+                    const imageCountRequest = imageStore.count();
+                    
+                    imageCountRequest.onsuccess = function() {
+                        const imageCount = imageCountRequest.result;
+                        document.getElementById('shared-images').textContent = imageCount;
+                        log(`共享图片数量: ${imageCount}`);
+                    };
+
+                    // 检查单词存储
+                    const wordTransaction = db.transaction(['words'], 'readonly');
+                    const wordStore = wordTransaction.objectStore('words');
+                    const wordCountRequest = wordStore.count();
+                    
+                    wordCountRequest.onsuccess = function() {
+                        const wordCount = wordCountRequest.result;
+                        document.getElementById('total-words').textContent = wordCount;
+                        log(`单词数量: ${wordCount}`);
+                    };
+                };
+
+                sharedDbRequest.onerror = function() {
+                    log('共享图片数据库连接失败');
+                    document.getElementById('db-status').innerHTML = '<div class="error">共享图片数据库不可用</div>';
+                };
+
+                // 检查主应用数据库
+                const mainDbRequest = indexedDB.open('WordAppDB', 1);
+                
+                mainDbRequest.onsuccess = function(event) {
+                    const db = event.target.result;
+                    log('主应用数据库连接成功');
+                    
+                    const transaction = db.transaction(['words'], 'readonly');
+                    const store = transaction.objectStore('words');
+                    const countRequest = store.count();
+                    
+                    countRequest.onsuccess = function() {
+                        const count = countRequest.result;
+                        document.getElementById('total-images').textContent = count;
+                        log(`主数据库单词数量: ${count}`);
+                    };
+                };
+
+                mainDbRequest.onerror = function() {
+                    log('主应用数据库连接失败');
+                };
+
+                // 估算数据库大小
+                if (navigator.storage && navigator.storage.estimate) {
+                    navigator.storage.estimate().then(estimate => {
+                        const used = (estimate.usage / 1024 / 1024).toFixed(2);
+                        document.getElementById('db-size').textContent = used + ' MB';
+                        log(`数据库使用空间: ${used} MB`);
+                    });
+                }
+
+                document.getElementById('db-status').innerHTML = '<div class="success">数据库连接正常</div>';
+                
+            } catch (error) {
+                log(`检查失败: ${error.message}`);
+                document.getElementById('db-status').innerHTML = `<div class="error">检查失败: ${error.message}</div>`;
+            }
+        }
+
+        async function clearSharedImages() {
+            if (!confirm('确定要清空所有共享图片吗？这个操作不可撤销！')) {
+                return;
+            }
+
+            try {
+                const request = indexedDB.open('SharedImagePool', 1);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    const transaction = db.transaction(['images'], 'readwrite');
+                    const store = transaction.objectStore('images');
+                    const clearRequest = store.clear();
+                    
+                    clearRequest.onsuccess = function() {
+                        log('共享图片已清空');
+                        checkDatabase();
+                    };
+                    
+                    clearRequest.onerror = function() {
+                        log('清空共享图片失败');
+                    };
+                };
+            } catch (error) {
+                log(`清空失败: ${error.message}`);
+            }
+        }
+
+        async function exportData() {
+            try {
+                const request = indexedDB.open('WordAppDB', 1);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    const transaction = db.transaction(['words'], 'readonly');
+                    const store = transaction.objectStore('words');
+                    const getAllRequest = store.getAll();
+                    
+                    getAllRequest.onsuccess = function() {
+                        const words = getAllRequest.result;
+                        const dataStr = JSON.stringify(words, null, 2);
+                        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                        const url = URL.createObjectURL(dataBlob);
+                        
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `words-export-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                        
+                        log(`已导出 ${words.length} 个单词`);
+                    };
+                };
+            } catch (error) {
+                log(`导出失败: ${error.message}`);
+            }
+        }
+
+        async function showRecentWords() {
+            try {
+                const request = indexedDB.open('WordAppDB', 1);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    const transaction = db.transaction(['words'], 'readonly');
+                    const store = transaction.objectStore('words');
+                    const getAllRequest = store.getAll();
+                    
+                    getAllRequest.onsuccess = function() {
+                        const words = getAllRequest.result;
+                        // 按创建时间排序，显示最近10个
+                        const recentWords = words
+                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                            .slice(0, 10);
+                        
+                        const container = document.getElementById('recent-words');
+                        container.innerHTML = recentWords.map(word => `
+                            <div class="word-item">
+                                <span><strong>${word.word}</strong> - ${word.translation}</span>
+                                <span style="color: #666; font-size: 12px;">${new Date(word.createdAt).toLocaleString()}</span>
+                            </div>
+                        `).join('');
+                        
+                        log(`显示最近 ${recentWords.length} 个单词`);
+                    };
+                };
+            } catch (error) {
+                log(`获取最近单词失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            checkDatabase();
+        };
+    </script>
+</body>
+</html>

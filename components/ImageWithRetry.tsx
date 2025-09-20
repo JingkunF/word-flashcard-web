@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { RefreshCw, X } from 'lucide-react';
-import { generateAIImage } from '@/utils/aiImage';
+import { generateAIImage } from '../utils/aiImage';
 
 interface ImageWithRetryProps {
   word: string;

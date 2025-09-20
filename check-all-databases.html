@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>检查所有数据库</title>
+</head>
+<body>
+    <h1>检查所有IndexedDB数据库</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkAllDatabases() {
+            const results = document.getElementById('results');
+            
+            try {
+                // 获取所有数据库名称
+                const databases = await indexedDB.databases();
+                console.log('所有数据库:', databases);
+                
+                results.innerHTML += `<h2>发现的数据库 (${databases.length} 个)</h2>`;
+                
+                for (const dbInfo of databases) {
+                    results.innerHTML += `<h3>数据库: ${dbInfo.name} (版本: ${dbInfo.version})</h3>`;
+                    
+                    try {
+                        const request = indexedDB.open(dbInfo.name, dbInfo.version);
+                        
+                        request.onsuccess = () => {
+                            const db = request.result;
+                            results.innerHTML += `<p>对象存储: ${Array.from(db.objectStoreNames).join(', ')}</p>`;
+                            
+                            // 检查每个对象存储
+                            for (const storeName of db.objectStoreNames) {
+                                const transaction = db.transaction([storeName], 'readonly');
+                                const store = transaction.objectStore(storeName);
+                                const countRequest = store.count();
+                                
+                                countRequest.onsuccess = () => {
+                                    results.innerHTML += `<p>  - ${storeName}: ${countRequest.result} 条记录</p>`;
+                                    
+                                    // 如果是images或words表，显示前几条记录
+                                    if (storeName === 'images' || storeName === 'words') {
+                                        const getAllRequest = store.getAll();
+                                        getAllRequest.onsuccess = () => {
+                                            const records = getAllRequest.result;
+                                            if (records.length > 0) {
+                                                results.innerHTML += `<div style="margin-left: 20px;">`;
+                                                records.slice(0, 5).forEach(record => {
+                                                    if (storeName === 'images') {
+                                                        results.innerHTML += `<p>    - ${record.word}: ${record.imageUrl ? '有图片' : '无图片'}</p>`;
+                                                    } else if (storeName === 'words') {
+                                                        results.innerHTML += `<p>    - ${record.word}: ${record.translation} (图片: ${record.imageUrl ? '有' : '无'})</p>`;
+                                                    }
+                                                });
+                                                if (records.length > 5) {
+                                                    results.innerHTML += `<p>    ... 还有 ${records.length - 5} 条记录</p>`;
+                                                }
+                                                results.innerHTML += `</div>`;
+                                            }
+                                        };
+                                    }
+                                };
+                            }
+                            
+                            db.close();
+                        };
+                        
+                        request.onerror = () => {
+                            results.innerHTML += `<p>无法打开数据库: ${request.error}</p>`;
+                        };
+                        
+                    } catch (error) {
+                        results.innerHTML += `<p>检查数据库时出错: ${error.message}</p>`;
+                    }
+                }
+                
+            } catch (error) {
+                results.innerHTML = '<p>错误: ' + error.message + '</p>';
+            }
+        }
+        
+        // 页面加载时检查
+        window.onload = checkAllDatabases;
+    </script>
+</body>
+</html>

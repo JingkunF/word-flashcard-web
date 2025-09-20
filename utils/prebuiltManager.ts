@@ -2,8 +2,8 @@
  * 预制词库管理器
  */
 
-import { Word } from '@/types';
-import { PrebuiltWord, PrebuiltCategory, findPrebuiltWord, getPrebuiltWordsByTheme, PREBUILT_CATEGORIES } from '@/data/prebuiltWords';
+import { Word } from '../types';
+import { PrebuiltWord, PrebuiltCategory, findPrebuiltWord, getPrebuiltWordsByTheme, PREBUILT_CATEGORIES } from '../data/prebuiltWords';
 import { addWord, getAllWords } from './storage';
 // 生成唯一ID的简单实现
 const generateUniqueId = (): string => {

@@ -1,5 +1,5 @@
 // 分类管理存储函数
-import { Category, INITIAL_CATEGORIES } from '@/types';
+import { Category, INITIAL_CATEGORIES } from '../types';
 
 const CATEGORIES_STORAGE_KEY = 'word-flashcard-categories';
 
