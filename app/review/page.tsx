@@ -1,18 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, RotateCcw, Volume2 } from 'lucide-react';
 import { Word } from '../types';
 import { getAllWords } from '../utils/dataAdapter';
-import ReviewCard from '../components/ReviewCard';
-import Navigation from '../components/Navigation';
 
 export default function ReviewPage() {
   const [words, setWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showTranslation, setShowTranslation] = useState(false);
-  const [reviewedWords, setReviewedWords] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,15 +45,11 @@ export default function ReviewPage() {
 
   const handleToggleTranslation = () => {
     setShowTranslation(!showTranslation);
-    if (!showTranslation && currentWord) {
-      setReviewedWords(prev => new Set([...prev, currentWord.id]));
-    }
   };
 
   const handleRestart = () => {
     setCurrentIndex(0);
     setShowTranslation(false);
-    setReviewedWords(new Set());
   };
 
   if (isLoading) {
@@ -75,7 +66,11 @@ export default function ReviewPage() {
   if (words.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navigation />
+        <nav className="bg-blue-600 p-4 text-white flex justify-around">
+          <a href="/" className="hover:text-yellow-300">添加单词</a>
+          <a href="/manage" className="hover:text-yellow-300">词汇管理</a>
+          <a href="/review" className="hover:text-yellow-300">复习闪卡</a>
+        </nav>
         <div className="max-w-4xl mx-auto p-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-800 mb-4">复习页面</h1>
@@ -94,7 +89,11 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Navigation />
+      <nav className="bg-blue-600 p-4 text-white flex justify-around">
+        <a href="/" className="hover:text-yellow-300">添加单词</a>
+        <a href="/manage" className="hover:text-yellow-300">词汇管理</a>
+        <a href="/review" className="hover:text-yellow-300">复习闪卡</a>
+      </nav>
       
       <div className="w-full bg-gray-200 h-2">
         <div 
@@ -107,29 +106,22 @@ export default function ReviewPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">复习模式</h1>
           <p className="text-gray-600">
-            {currentIndex + 1} / {words.length} 
-            <span className="ml-4">已复习: {reviewedWords.size}</span>
+            {currentIndex + 1} / {words.length}
           </p>
         </div>
 
         <div className="flex justify-center mb-8">
-          <AnimatePresence mode="wait">
-            {currentWord && (
-              <motion.div
-                key={currentWord.id}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ReviewCard 
-                  word={currentWord}
-                  showTranslation={showTranslation}
-                  onToggleTranslation={handleToggleTranslation}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {currentWord && (
+            <div className="bg-white rounded-lg shadow-lg w-80 h-96 flex flex-col items-center justify-center p-6 text-center">
+              {currentWord.imageUrl && (
+                <img src={currentWord.imageUrl} alt={currentWord.word} className="max-h-40 max-w-full object-contain mb-4" />
+              )}
+              <h2 className="text-4xl font-bold text-gray-800 mb-2">{currentWord.word}</h2>
+              {showTranslation && (
+                <p className="text-2xl text-gray-600">{currentWord.translation}</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-center items-center space-x-4">
@@ -138,15 +130,13 @@ export default function ReviewPage() {
             disabled={currentIndex === 0}
             className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            上一个
+            ← 上一个
           </button>
 
           <button
             onClick={handleToggleTranslation}
             className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <Volume2 className="w-4 h-4 mr-2" />
             {showTranslation ? '隐藏翻译' : '显示翻译'}
           </button>
 
@@ -155,8 +145,7 @@ export default function ReviewPage() {
             disabled={currentIndex === words.length - 1}
             className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            下一个
-            <ArrowRight className="w-4 h-4 ml-2" />
+            下一个 →
           </button>
         </div>
 
@@ -165,8 +154,7 @@ export default function ReviewPage() {
             onClick={handleRestart}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors mx-auto"
           >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            重新开始
+            🔄 重新开始
           </button>
         </div>
       </div>
