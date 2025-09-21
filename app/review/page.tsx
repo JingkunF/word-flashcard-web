@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, RotateCcw, Volume2 } from 'lucide-react';
-import { Word } from '../types';
-import { getAllWords } from '../utils/dataAdapter';
-import ReviewCard from '../components/ReviewCard';
-import Navigation from '../components/Navigation';
+import { Word } from '../../types';
+import { getAllWords } from '../../utils/dataAdapter';
+import ReviewCard from '../../components/ReviewCard';
+import Navigation from '../../components/Navigation';
 
 export default function ReviewPage() {
   const [words, setWords] = useState<Word[]>([]);
